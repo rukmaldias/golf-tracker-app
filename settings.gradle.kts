@@ -22,6 +22,8 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "rapsodo-golf-tracker"
+rootProject.name = "golf-tracker-app"
 include(":app")
+include(":data")
+include(":domain")
  
