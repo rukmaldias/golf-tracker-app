@@ -8,11 +8,11 @@ An Android application for tracking golf player statistics and shot data, built 
 
 ### Data flow
 
-![Data flow diagram](images/golf-app-dfd-diagram.png)
+<img src="images/golf-app-dfd-diagram.png" width="600" alt="Data flow diagram"/>
 
 ### Component breakdown
 
-![Component diagram](images/component-diagram.png)
+<img src="images/component-diagram.png" width="600" alt="Component diagram"/>
 
 ---
 
