@@ -7,15 +7,22 @@ plugins {
 }
 
 android {
-    namespace = "com.rapsodo.golftracker.data"
+    namespace = "com.rapsodo.golf.data"
     compileSdk = 35
     defaultConfig { minSdk = 24 }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 dependencies {
     implementation(project(":domain"))
 
-    // Ktorfit + Ktor (replaces Retrofit in your stack)
     implementation(libs.ktorfit.lib)
     ksp(libs.ktorfit.ksp)
     implementation(libs.ktor.client.okhttp)
@@ -30,4 +37,11 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    testImplementation(libs.junit)
+
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.kotlinx.coroutines.test)
+    implementation(libs.napier)
 }
