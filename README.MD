@@ -65,6 +65,12 @@ Uses [MockAPI](https://mockapi.io) as a mock backend.
 
 ---
 
+## Demo
+
+<img src="images/demo.gif" width="300" alt="Golf tracker demo"/>
+
+---
+
 ## Running tests
 
 ```bash
