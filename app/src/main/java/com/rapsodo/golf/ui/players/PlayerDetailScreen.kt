@@ -42,6 +42,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import android.graphics.Paint
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
@@ -339,7 +347,6 @@ private fun formatDate(recordedAt: String): String = try {
 private fun ClubDistanceChart(shots: List<Shot>) {
     if (shots.isEmpty()) return
 
-    // compute average carry per club, sorted longest first
     val clubAverages = shots
         .groupBy { it.clubType }
         .map { (club, clubShots) ->
@@ -358,6 +365,21 @@ private fun ClubDistanceChart(shots: List<Shot>) {
     val valueWidth = 80f
     val chartHeight = (clubAverages.size * (barHeight + barSpacing) + barSpacing)
 
+    // Animation progress — 0f to 1f on first composition
+    var animationPlayed by remember { mutableStateOf(false) }
+    val animationProgress by animateFloatAsState(
+        targetValue = if (animationPlayed) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = 1000,
+            easing = FastOutSlowInEasing
+        ),
+        label = "bar_chart_animation"
+    )
+
+    LaunchedEffect(Unit) {
+        animationPlayed = true
+    }
+
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -372,7 +394,8 @@ private fun ClubDistanceChart(shots: List<Shot>) {
 
         clubAverages.forEachIndexed { index, (club, avgDistance) ->
             val y = barSpacing + index * (barHeight + barSpacing)
-            val barWidth = (avgDistance / maxDistance * availableWidth).toFloat()
+            val fullBarWidth = (avgDistance / maxDistance * availableWidth).toFloat()
+            val animatedBarWidth = fullBarWidth * animationProgress  // ← animated
 
             // club label (left)
             paint.color = labelColor
@@ -384,23 +407,26 @@ private fun ClubDistanceChart(shots: List<Shot>) {
                 paint
             )
 
-            // bar
+            // animated bar
             drawRoundRect(
                 color = barColor,
                 topLeft = Offset(labelWidth, y),
-                size = Size(barWidth.coerceAtLeast(8f), barHeight),
+                size = Size(animatedBarWidth.coerceAtLeast(4f), barHeight),
                 cornerRadius = CornerRadius(6f, 6f)
             )
 
-            // distance value (right of bar)
-            paint.color = valueColor
-            paint.textAlign = android.graphics.Paint.Align.LEFT
-            drawContext.canvas.nativeCanvas.drawText(
-                "%.0f yds".format(avgDistance),
-                labelWidth + barWidth + 8f,
-                y + barHeight * 0.65f,
-                paint
-            )
+            // value — only show when animation is mostly done
+            if (animationProgress > 0.85f) {
+                paint.color = valueColor
+                paint.alpha = ((animationProgress - 0.85f) / 0.15f * 255).toInt()
+                paint.textAlign = android.graphics.Paint.Align.LEFT
+                drawContext.canvas.nativeCanvas.drawText(
+                    "%.0f yds".format(avgDistance),
+                    labelWidth + animatedBarWidth + 8f,
+                    y + barHeight * 0.65f,
+                    paint
+                )
+            }
         }
     }
 }
