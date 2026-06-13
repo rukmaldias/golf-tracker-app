@@ -6,13 +6,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 
+import com.rapsodo.golf.domain.logger.AppLogger
 import com.rapsodo.golf.ui.players.PlayerListScreen
 import com.rapsodo.golf.ui.splash.SplashScreen
 import com.rapsodo.golf.ui.theme.GolfTrackerTheme
-import com.rapsodo.golf.domain.logger.AppLogger
+import com.rapsodo.golf.ui.navigation.NavGraph
 
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.aakira.napier.Napier
@@ -23,14 +24,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            GolfTrackerTheme {
-                var showSplash by remember { mutableStateOf(true) }
+            GolfTrackerTheme (darkTheme = true) {
+                // Using 'rememberSaveable' as it survives configuration changes
+                var showSplash by rememberSaveable { mutableStateOf(true) }
                 if (showSplash) {
                     Napier.i(tag = AppLogger.TAG) { "Showing splash view" }
                     SplashScreen(onReady = { showSplash = false })
                 } else {
                     Napier.i(tag = AppLogger.TAG) { "Showing players list view" }
-                    PlayerListScreen()
+                    NavGraph()
                 }
             }
         }

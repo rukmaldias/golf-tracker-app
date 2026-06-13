@@ -4,6 +4,8 @@ import app.cash.turbine.test
 import com.rapsodo.golf.domain.model.Player
 import com.rapsodo.golf.domain.repository.PlayerRepository
 import com.rapsodo.golf.domain.usecase.GetPlayersUseCase
+import com.rapsodo.golf.domain.model.Shot
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -12,6 +14,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -44,11 +47,11 @@ class PlayerViewModelTest {
     }
 
     private val testPlayer = Player(
-        id        = "player_01",
-        name      = "Rukmal Dias",
-        handicap  = 10.4,
+        id = "player_01",
+        name = "Rukmal Dias",
+        handicap = 10.4,
         avatarUrl = "https://i.pravatar.cc/150?img=68",
-        shots     = emptyList()
+        shots = emptyList()
     )
 
     @Before
@@ -162,4 +165,111 @@ class PlayerViewModelTest {
         }
     }
 
+    private val playerWithDriver = testPlayer.copy(
+        id    = "p_driver",
+        name  = "Tom Watson",
+        shots = listOf(
+            Shot("s1", "Driver", 165.0, 11.0, 280, 295, 2100, "2026-06-12T08:00:00Z")
+        )
+    )
+
+    private val playerWithIron = testPlayer.copy(
+        id    = "p_iron",
+        name  = "Jane Smith",
+        shots = listOf(
+            Shot("s2", "7-Iron", 118.0, 18.0, 155, 161, 6100, "2026-06-12T09:00:00Z")
+        )
+    )
+
+    @Test
+    fun `search by name filters players correctly`() = runTest {
+        val players = listOf(testPlayer, playerWithDriver, playerWithIron)
+        val repo = FakePlayerRepository(MutableStateFlow(players))
+        val viewModel = PlayerViewModel(GetPlayersUseCase(repo), repo)
+
+        viewModel.onSearchQueryChanged("Jane")
+
+        viewModel.uiState.test {
+            val first = awaitItem()
+            val state = if (first is PlayerUiState.Loading) {
+                testDispatcher.scheduler.advanceUntilIdle()
+                awaitItem()
+            } else first
+
+            assertTrue(state is PlayerUiState.Success)
+            val result = (state as PlayerUiState.Success).players
+            assertEquals(1, result.size)
+            assertEquals("Jane Smith", result[0].name)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `search is case insensitive`() = runTest {
+        val repo = FakePlayerRepository(MutableStateFlow(listOf(testPlayer, playerWithIron)))
+        val viewModel = PlayerViewModel(GetPlayersUseCase(repo), repo)
+
+        viewModel.onSearchQueryChanged("jane")
+
+        viewModel.uiState.test {
+            val first = awaitItem()
+            val state = if (first is PlayerUiState.Loading) {
+                testDispatcher.scheduler.advanceUntilIdle()
+                awaitItem()
+            } else first
+
+            val result = (state as PlayerUiState.Success).players
+            assertEquals(1, result.size)
+            assertEquals("Jane Smith", result[0].name)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `club filter shows only players with that club`() = runTest {
+        val players = listOf(playerWithDriver, playerWithIron)
+        val repo = FakePlayerRepository(MutableStateFlow(players))
+        val viewModel = PlayerViewModel(GetPlayersUseCase(repo), repo)
+
+        viewModel.onClubSelected("Driver")
+
+        viewModel.uiState.test {
+            val first = awaitItem()
+            val state = if (first is PlayerUiState.Loading) {
+                testDispatcher.scheduler.advanceUntilIdle()
+                awaitItem()
+            } else first
+
+            val result = (state as PlayerUiState.Success).players
+            assertEquals(1, result.size)
+            assertEquals("Tom Watson", result[0].name)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `clearing search returns all players`() = runTest {
+        val players = listOf(testPlayer, playerWithDriver, playerWithIron)
+        val repo = FakePlayerRepository(MutableStateFlow(players))
+        val viewModel = PlayerViewModel(GetPlayersUseCase(repo), repo)
+
+        viewModel.onSearchQueryChanged("Jane")
+        viewModel.onSearchQueryChanged("") // clear
+
+        viewModel.uiState.test {
+            val first = awaitItem()
+            val state = if (first is PlayerUiState.Loading) {
+                testDispatcher.scheduler.advanceUntilIdle()
+                awaitItem()
+            } else first
+
+            val result = (state as PlayerUiState.Success).players
+            assertEquals(3, result.size)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }

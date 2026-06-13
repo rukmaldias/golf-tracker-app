@@ -9,7 +9,16 @@ plugins {
 android {
     namespace = "com.rapsodo.golf.data"
     compileSdk = 35
-    defaultConfig { minSdk = 24 }
+    defaultConfig {
+        minSdk = 24
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        debug {
+            enableUnitTestCoverage = true
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -17,6 +26,12 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+    }
+
+    sourceSets {
+        getByName("main") {
+            kotlin.srcDir("build/generated/ksp/debug/kotlin")
+        }
     }
 }
 
